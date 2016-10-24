@@ -2,9 +2,6 @@ from MeshGenerator import *
 from RunCase import *
 from PathHandler import *
 import datetime
-
-from StudyHandler import *
-from CaseHandler import *
 from XmlHandler import *
 from math import log
 
@@ -38,8 +35,8 @@ class CaseInterface:
         self.tMax = 0.
 
         # Path and mesh
-        self.studyPath = {}
-        self.casePath = {}
+        self.studyPath = PathStudy()
+        self.casePath = PathCase(self.studyPath)
         self.mesh = GmshMesh(self.dim, lx=self.lx, ly=self.ly, nx=self.nx, ny=self.ny)
 
         # Other
@@ -47,7 +44,7 @@ class CaseInterface:
         self.output = ""
 
     def createCase(self, name=None):
-        self.studyPath.checkingPath()
+        self.studyPath.checkingTree()
 
         if name is None:
             now = datetime.datetime.now()
@@ -90,7 +87,7 @@ class CaseInterface:
         xmlHandler.setAttribute('time', 'fparam', 'CFL', str(cfl))
         xmlHandler.write(self.casePath.getConfigPath())
 
-    def setTimePeriode(self, nMax, tMax):
+    def setTimePeriod(self, nMax, tMax):
         xmlHandler = XmlHandler(self.casePath.getConfigPath())
         xmlHandler.setAttribute('time', 'iparam', 'Nmax', str(nMax))
         xmlHandler.setAttribute('time', 'fparam', 'tmax', str(tMax))

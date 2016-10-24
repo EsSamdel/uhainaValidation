@@ -39,7 +39,7 @@ class GmshMesh:
 
         print "Generate 1D Mesh with lenght = ", self.lx, " and ", self.nx, " cells."
         command = "gmsh -1 " + geoPath + " -o " + self.mshPath
-        output = sp.check_output(command, shell=True)
+        sp.check_output(command, shell=True)
 
         os.remove(geoPath)
 
@@ -68,7 +68,7 @@ class GmshMesh:
 
         print "Generate 2D Mesh with lenght = ", self.lx, " * ", self.ly, " and ", self.nx, " * ", self.ny, " cells."
         command = "gmsh -2 " + geoPath + " -o " + self.mshPath
-        output = sp.check_output(command, shell=True)
+        sp.check_output(command, shell=True)
 
         os.remove(geoPath)
 

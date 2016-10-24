@@ -6,37 +6,42 @@ Created on Thu May 21 14:14:40 2015
 """
 
 import os
-import sys
-from XmlHandler import *
 import datetime
+from XmlHandler import *
+from ConfigTemplate import generateConfigFile
 
 
 class PathStudy(dict):
+    __directories = ['MESH', 'EXE', 'DATA', 'CONFIG']
 
-    def __init__(self, name='', **kwargs):
+    def __init__(self, name=None, **kwargs):
         super(PathStudy, self).__init__(**kwargs)
 
+        self.exePath = ''
         self.name = name
-        if name == '':
+        if name is None:
             self.rootPath = os.getcwd()
         else:
             self.rootPath = os.getcwd() + '/' + name
 
-        name = ['MESH', 'EXE', 'DATA', 'CONFIG']
-
-        for iName in name:
+        for iName in PathStudy.__directories:
             self.update({iName: self.rootPath + '/' + iName})
 
     def getRootPath(self):
         return self.rootPath
 
+    def setRootPath(self, path):
+        self.rootPath = path
+        for iName in PathStudy.__directories:
+            self.update({iName: self.rootPath + '/' + iName})
+
     def createTree(self):
-        assert (self.name != ''), "Error : Cannot create study without name!"
+        assert (self.name is not None), "Error : Cannot create study without name!"
         try:
             os.makedirs(self.rootPath)
         except OSError:
             print 'Warning : Study : ', self.rootPath, ' already exist!'
-            self.checkingPath()
+            self.checkingTree()
             return
 
         for key, value in self.iteritems():
@@ -46,13 +51,27 @@ class PathStudy(dict):
                 print 'Error : ', value, ' already exist!'
                 sys.exit()
 
-        self.checkingPath()
+        self.checkingTree()
 
-    def checkingPath(self):
+    def checkingTree(self):
         for key, value in self.iteritems():
             if not os.path.exists(value):
                 print "Error :: Study ", self.rootPath, " not correctly set! (missing : ", value, ")"
                 sys.exit()
+
+    def create(self, exePath):
+        self.exePath = exePath
+        self.createTree()
+
+        generateConfigFile(self.get('CONFIG'))
+        xmlHandler = XmlHandler(self.get('CONFIG') + '/config.xml')
+        xmlHandler.setAttribute('mesh', 'sparam', 'file', self.get('MESH'))
+        xmlHandler.write(self.get('CONFIG') + '/config.xml')
+
+        try:
+            os.symlink(exePath, self.get('EXE') + '/' + exePath.split("/")[-1])
+        except OSError:
+            print 'Error : Path to exe seems incorrect : ', exePath
 
 
 class PathCase(dict):
@@ -62,7 +81,6 @@ class PathCase(dict):
         super(PathCase, self).__init__(**kwargs)
 
         self.studyPath = studyPath
-        self.studyPath.checkingPath()
 
         if name is None:
             now = datetime.datetime.now()
@@ -84,6 +102,8 @@ class PathCase(dict):
 
     def createTree(self):
         assert (self.name != ''), "Error : Cannot create study without a name!"
+
+        self.studyPath.checkingTree()
         try:
             os.makedirs(self.rootPath)
         except OSError:
@@ -97,11 +117,11 @@ class PathCase(dict):
                 print 'Warning : ', value, ' already exist!'
                 # sys.exit()
 
-        self.checkingPath()
+        self.checkingTree()
         self.copyingConfigFile()
         self.linkingToExe()
 
-    def checkingPath(self):
+    def checkingTree(self):
         for key, value in self.iteritems():
             if not os.path.exists(value):
                 print "Error : In Case ", self.rootPath, ", ", value, " is missing)"

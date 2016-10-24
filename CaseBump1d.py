@@ -15,7 +15,8 @@ class Bump1d(CaseInterface):
         self.nMax = 10000.0
         self.tMax = 30.0
 
-        self.studyPath = createStudy(self.testName, self.exePath)
+        self.studyPath = PathStudy(self.testName)
+        self.studyPath.create(self.exePath)
         self.casePath = PathCase(self.studyPath)
         self.mesh = GmshMesh(1, lx=self.lx, ly=self.ly, nx=self.nx, ny=self.ny)
 
@@ -37,7 +38,7 @@ class Bump1d(CaseInterface):
 
         self.setDegree(degree)
         self.setCFL(CFL)
-        self.setTimePeriode(self.nMax, self.tMax)
+        self.setTimePeriod(self.nMax, self.tMax)
 
     def hasExactSolution(self):
         return True

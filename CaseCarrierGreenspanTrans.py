@@ -10,7 +10,6 @@ from scipy.optimize import fsolve
 
 import matplotlib
 import matplotlib.pyplot as plt
-
 matplotlib.style.use('ggplot')
 
 
@@ -34,7 +33,8 @@ class CarrierGreenspanTrans(CaseInterface):
         self.nMax = 10000
         self.tMax = 1.5
 
-        self.studyPath = createStudy(self.testName, self.exePath)
+        self.studyPath = PathStudy(self.testName)
+        self.studyPath.create(self.exePath)
         self.casePath = PathCase(self.studyPath)
         self.mesh = GmshMesh(1, lx=self.lx, ly=self.ly, nx=self.nx, ny=self.ny)
 
@@ -65,7 +65,7 @@ class CarrierGreenspanTrans(CaseInterface):
 
         self.setDegree(degree)
         self.setCFL(CFL)
-        self.setTimePeriode(self.nMax, self.tMax)
+        self.setTimePeriod(self.nMax, self.tMax)
 
     def hasExactSolution(self):
         return True
@@ -149,7 +149,7 @@ class CarrierGreenspanTrans(CaseInterface):
         pos = 0
         plt.clf()
         plt.plot(numSol[t][pos:], numSol[x][pos:], label='Numerical')
-        # plt.plot(exactSol[t][pos:], exactSol[x][pos:], label='Exact')
+        plt.plot(exactSol[t][pos:], exactSol[x][pos:], label='Exact')
         plt.xlabel('t')
         plt.ylabel('x')
         plt.legend(loc='lower right', shadow=True)
@@ -157,7 +157,8 @@ class CarrierGreenspanTrans(CaseInterface):
         plt.savefig(savePath + '.png')
 
     def specificCasePostProcess(self):
-        self.plotShoreline()
+        pass
+        # self.plotShoreline()
 
 
 if __name__ == '__main__':
