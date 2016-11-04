@@ -22,7 +22,7 @@ class RunCase:
             commands = ['cd ' + self.casePath.rootPath + '; ' +
                         'mpirun -np ' + str(self.nbProc) + ' ' + self.exePath + ' -i ' + self.casePath.getConfigPath()]
 
-        print commands[0]
+        # print commands[0]
         self.output = check_output(commands[0], shell=True)
         self.formatedOutput = self.output.splitlines()
 

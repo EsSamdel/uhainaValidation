@@ -4,6 +4,12 @@ from PathHandler import *
 import datetime
 from XmlHandler import *
 from math import log
+import vtk
+import numpy as np
+from vtk.util import numpy_support as vn
+import matplotlib
+import matplotlib.pyplot as plt
+matplotlib.style.use('ggplot')
 
 
 def getSlopeFromError(error):
@@ -11,12 +17,11 @@ def getSlopeFromError(error):
     du1 = log(error[-1][1]) - log(error[0][1])
     assert dh != 0
     slope = du1 / dh
-    print 'slope : ', slope
     return slope
 
 
 class CaseInterface:
-    _cflDict = {1: 0.9, 2: 0.2, 3: 0.1, 4: 0.1}
+    _cflDict = {1: 0.9, 2: 0.2, 3: 0.1}
 
     def __init__(self, exePath):
         self.exePath = exePath
@@ -64,6 +69,7 @@ class CaseInterface:
         if pathToCase is None:
             pathToCase = self.casePath
         run = RunCase(pathToCase)
+        print "Running case ", self.caseName, "..."
         run.run()
         run.checkRun()
         run.printLogToFile()
@@ -102,12 +108,53 @@ class CaseInterface:
     def specificCasePostProcess(self):
         pass
 
+    def plotFinalSolution(self):
+        if self.dim != 1:
+            print "Warning :: plotFinalSolution only available with one dimensional problems"
+        else:
+            savePath = self.casePath.getRootPath() + "/finalSolution"
+            x, eta, z = self.getFinalSolutionFromVtk()
+
+            plt.clf()
+            plt.plot(x, z, label='Bathymetry', color='k')
+            plt.plot(x, eta, label='Water level', color='b')
+            plt.fill_between(x, eta, z, color='b')
+            plt.fill_between(x, z, 0, color='k')
+            plt.xlabel('x')
+            plt.ylabel('h')
+            plt.legend(loc='lower right', shadow=True)
+
+            plt.savefig(savePath + '.png')
+
+    def getFinalSolutionFromVtk(self):
+        dataPath = self.casePath['visu']
+
+        fileName = "outputfinal.vtu"
+        reader = vtk.vtkXMLUnstructuredGridReader()
+        reader.SetFileName(dataPath + "/" + fileName)
+        reader.Update()
+        dataSet = reader.GetOutput()
+        eta = vn.vtk_to_numpy(dataSet.GetPointData().GetArray('eta'))
+        nPoints = dataSet.GetNumberOfPoints()
+
+        x = np.arange(nPoints)
+        x *= self.lx / x[-1]
+
+        fileName = "bathymetry.vtu"
+        reader = vtk.vtkXMLUnstructuredGridReader()
+        reader.SetFileName(dataPath + "/" + fileName)
+        reader.Update()
+        dataSet = reader.GetOutput()
+        z = vn.vtk_to_numpy(dataSet.GetPointData().GetArray('z'))
+
+        return x, eta, z
+
     def runConvergenceTest(self):
         if self.hasExactSolution():
             # Generate meshes :
             meshList = []
-            nx = 5
-            for iSize in range(6):
+            nx = 10
+            for iSize in range(5):
                 nx *= 2
                 meshList.append(GmshMesh(self.dim, lx=self.lx, ly=self.ly, nx=nx, ny=nx))
                 meshList[-1].generateMesh(self.studyPath['MESH'], self.caseName)
@@ -124,8 +171,10 @@ class CaseInterface:
                     errorL1.append(run.getErrorL1())
                     errorL2.append(run.getErrorL2())
                     self.specificCasePostProcess()
+                    self.plotFinalSolution()
 
                 slope = getSlopeFromError(errorL2)
+                print "Slope L2 = ", slope
                 fileName = "Order_" + str(iOrder) + "_convergenceL2.txt"
                 with open(self.studyPath.getRootPath() + "/" + fileName, 'w') as iFile:
                     iFile.write("# Slope : " + str(slope) + "\n")
@@ -135,6 +184,7 @@ class CaseInterface:
                         iFile.write('\n ')
 
                 slope = getSlopeFromError(errorL1)
+                print "Slope L1 = ", slope
                 fileName = "Order_" + str(iOrder) + "_convergenceL1.txt"
                 with open(self.studyPath.getRootPath() + "/" + fileName, 'w') as iFile:
                     iFile.write("# Slope : " + str(slope) + "\n")

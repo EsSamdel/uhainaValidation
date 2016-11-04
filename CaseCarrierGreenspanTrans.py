@@ -46,8 +46,10 @@ class CarrierGreenspanTrans(CaseInterface):
 
         xmlHandler = XmlHandler(self.casePath.getConfigPath())
 
-        xmlHandler.setAttribute('aerosol', 'sparam', 'castest', self.testName)
         xmlHandler.setAttribute('mesh', 'sparam', 'file', meshPath)
+
+        xmlHandler.setAttribute('aerosol', 'sparam', 'castest', self.testName)
+        xmlHandler.setAttribute('aerosol', 'sparam', 'visualisationVariables', "h")
 
         xmlHandler.setAttribute('model', 'fparam', 'g', str(self.g))
         xmlHandler.setAttribute('model', 'fparam', 'dryTolerance', str(self.dryTolerance))
@@ -60,6 +62,11 @@ class CarrierGreenspanTrans(CaseInterface):
         xmlHandler.setAttribute('model', 'fparam', 'alpha', str(self.alpha))
         xmlHandler.setAttribute('model', 'fparam', 'e', str(self.e))
         xmlHandler.setAttribute('model', 'fparam', 'initTime', str(self.initTime))
+
+        xmlHandler.setAttribute('time', 'iparam', 'kprint', "100")
+
+        # xmlHandler.setAttribute('discretisation', 'sparam', 'numericalflux', "WellBalancedLaxFriedrich")
+        # xmlHandler.setAttribute('model', 'fparam', 'epsilon', str(self.dryTolerance))
 
         xmlHandler.write(self.casePath.getConfigPath())
 
@@ -76,28 +83,13 @@ class CarrierGreenspanTrans(CaseInterface):
         filesList = [iFile for iFile in filesList if "output0" in iFile]
         filesList.sort(key=lambda name: int(name.split("output")[-1].split(".")[0]))
 
-        # Bathy :
-        reader = vtk.vtkXMLUnstructuredGridReader()
-        reader.SetFileName(dataPath + "/bathymetry.vtu")
-        reader.Update()
-        dataSet = reader.GetOutput()
-        data = dataSet.GetPointData()
-        z = vn.vtk_to_numpy(data.GetArray('z'))[2:]
-
         shoreline = np.zeros(len(filesList))
         for fileNumber, iFile in enumerate(filesList):
             reader = vtk.vtkXMLUnstructuredGridReader()
             reader.SetFileName(dataPath + "/" + iFile)
             reader.Update()
             dataSet = reader.GetOutput()
-
-            eta = vn.vtk_to_numpy(dataSet.GetPointData().GetArray('eta'))[2:]
-            h = eta - z
-
-            print z
-            print eta
-            print h
-            print "---------"
+            h = vn.vtk_to_numpy(dataSet.GetPointData().GetArray('h'))[2:]
 
             for i, val in enumerate(h):
                 if val <= self.dryTolerance:
@@ -130,8 +122,8 @@ class CarrierGreenspanTrans(CaseInterface):
 
             u3 = fsolve(ftemp3, 0.)[0]
             lam3 = 2.0 / a * (u3 + t)
-            x3 = -0.5 * u3 ** 2.0 + self.e - self.e * (1.0 + 3 * lam3 ** 2.0 - 2.0 * lam3 ** 4.0) / (
-                                                                                                    1.0 + lam3 ** 2.0) ** 3.0
+            x3 = -0.5 * u3 ** 2.0 + self.e - self.e * (1.0 + 3 * lam3 ** 2.0 - 2.0 * lam3 ** 4.0) / \
+                                                      (1.0 + lam3 ** 2.0) ** 3.0
 
             tt.append(tDim)
             ut.append(u3 * sqrt(self.g * self.alpha * self.lx))
@@ -146,24 +138,24 @@ class CarrierGreenspanTrans(CaseInterface):
         exactSol = self.exactShoreline()
         numSol = self.getShorelineFromVTK()
 
-        pos = 0
+        pos = 10
         plt.clf()
         plt.plot(numSol[t][pos:], numSol[x][pos:], label='Numerical')
-        plt.plot(exactSol[t][pos:], exactSol[x][pos:], label='Exact')
+        plt.plot(exactSol[t], exactSol[x], label='Exact')
         plt.xlabel('t')
         plt.ylabel('x')
         plt.legend(loc='lower right', shadow=True)
 
         plt.savefig(savePath + '.png')
+        # plt.show()
 
     def specificCasePostProcess(self):
-        pass
-        # self.plotShoreline()
+        self.plotShoreline()
 
 
 if __name__ == '__main__':
     testCase = CarrierGreenspanTrans('')
-    caseName = testCase.testName + '_order' + str(2) + '_h' + str(20)
+    caseName = testCase.testName + '_order' + str(3) + '_h' + str(320)
     testCase.casePath.setRootPath(testCase.studyPath.getRootPath() + '/' + caseName)
     testCase.plotShoreline()
 

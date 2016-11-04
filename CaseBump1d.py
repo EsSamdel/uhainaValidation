@@ -12,12 +12,16 @@ class Bump1d(CaseInterface):
         self.nx = 100
         self.ny = 0
 
+        self.g = 9.8
+        self.dryTolerance = 0.0001
+
         self.nMax = 10000.0
         self.tMax = 30.0
 
         self.studyPath = PathStudy(self.testName)
         self.studyPath.create(self.exePath)
         self.casePath = PathCase(self.studyPath)
+
         self.mesh = GmshMesh(1, lx=self.lx, ly=self.ly, nx=self.nx, ny=self.ny)
 
         self.orderList = [2, 3]
@@ -31,8 +35,12 @@ class Bump1d(CaseInterface):
         xmlHandler.setAttribute('aerosol', 'sparam', 'castest', self.testName)
         xmlHandler.setAttribute('mesh', 'sparam', 'file', meshPath)
 
-        xmlHandler.setAttribute('model', 'fparam', 'g', "9.8")
-        xmlHandler.setAttribute('model', 'fparam', 'dryTolerance', "0.0001")
+        xmlHandler.setAttribute('model', 'fparam', 'g', str(self.g))
+        xmlHandler.setAttribute('model', 'fparam', 'dryTolerance', str(self.dryTolerance))
+        xmlHandler.setAttribute('model', 'fparam', 'velocityCutOff', "0.001")
+
+        xmlHandler.setAttribute('time', 'sparam', 'inittype', "projection")
+        xmlHandler.setAttribute('time', 'iparam', 'kprint', "100")
 
         xmlHandler.write(self.casePath.getConfigPath())
 
@@ -44,3 +52,8 @@ class Bump1d(CaseInterface):
         return True
 
 
+if __name__ == '__main__':
+    testCase = Bump1d('')
+    caseName = testCase.testName + '_order' + str(2) + '_h' + str(10)
+    testCase.casePath.setRootPath(testCase.studyPath.getRootPath() + '/' + caseName)
+    testCase.plotFinalSolution()
