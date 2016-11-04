@@ -1,1 +1,1 @@
-Script to validate modification in Uhaina
+Validation script for Uhaina
